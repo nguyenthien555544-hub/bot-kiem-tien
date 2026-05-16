@@ -36,7 +36,6 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY,
 cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (task_id TEXT PRIMARY KEY, user_id INTEGER, status TEXT, reward INTEGER, answer INTEGER, time_created REAL, date_str TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)''')
 
-# Tự động thêm cột task_type nếu chưa có (Chống lỗi Database cũ)
 try:
     cursor.execute("ALTER TABLE tasks ADD COLUMN task_type TEXT DEFAULT 'uptolink'")
     conn.commit()
@@ -117,22 +116,17 @@ def menu_chinh():
 
 def menu_chon_nhiem_vu(uid):
     today = get_today_str()
-    # Đếm số task Uptolink
     cursor.execute("SELECT COUNT(*) FROM tasks WHERE user_id=? AND date_str=? AND status='completed' AND task_type='uptolink'", (uid, today))
     count_upto = cursor.fetchone()[0]
-    # Đếm số task Layma
     cursor.execute("SELECT COUNT(*) FROM tasks WHERE user_id=? AND date_str=? AND status='completed' AND task_type='layma'", (uid, today))
     count_layma = cursor.fetchone()[0]
 
     markup = InlineKeyboardMarkup()
-    
-    # Nút Layma (Đắt tiền)
     if count_layma < MAX_LAYMA:
         markup.row(InlineKeyboardButton(f"🔥 Lấy Mã SEO (+{TIEN_LAYMA}đ) [{count_layma}/{MAX_LAYMA}]", callback_data="get_layma"))
     else:
         markup.row(InlineKeyboardButton(f"🔥 Lấy Mã SEO (Hết lượt hôm nay)", callback_data="limit_reached"))
 
-    # Nút Uptolink
     if count_upto < MAX_UPTO:
         markup.row(InlineKeyboardButton(f"🔗 Vượt Uptolink (+{TIEN_UPTO}đ) [{count_upto}/{MAX_UPTO}]", callback_data="get_uptolink"))
     else:
@@ -217,7 +211,7 @@ def xu_ly_start(message):
             reward = task[2]
             t_type = task[3]
             
-            # --- NẾU LÀ LAYMA: BẮT GIẢI TOÁN ---
+            # --- NẾU LÀ LAYMA: BẮT GIẢI TOÁN (BẢN TRẮC NGHIỆM BẤM NÚT) ---
             if t_type == 'layma':
                 dau = random.choice(['+', '-'])
                 if dau == '+':
@@ -230,23 +224,45 @@ def xu_ly_start(message):
                 cursor.execute("UPDATE tasks SET status='verifying', answer=?, time_created=? WHERE task_id=?", (ans, time.time(), task_id))
                 conn.commit()
                 
+                # Tạo 3 đáp án sai hợp lý xung quanh đáp án đúng
+                sai1 = ans + random.choice([1, 2, 3])
+                sai2 = ans - random.choice([1, 2, 3])
+                sai3 = ans + random.choice([4, 5, 10])
+                
+                choices = list(set([ans, sai1, sai2, sai3]))
+                while len(choices) < 4:
+                    choices.append(ans + random.randint(11, 20))
+                    choices = list(set(choices))
+                random.shuffle(choices)
+
+                # Rút gọn task_id để nhét vừa nút bấm Telegram
+                tid_code = task_id.split('_')[1]
+
+                markup_toan = InlineKeyboardMarkup()
+                markup_toan.row(
+                    InlineKeyboardButton(f"{choices[0]}", callback_data=f"chk_{tid_code}_{choices[0]}"),
+                    InlineKeyboardButton(f"{choices[1]}", callback_data=f"chk_{tid_code}_{choices[1]}")
+                )
+                markup_toan.row(
+                    InlineKeyboardButton(f"{choices[2]}", callback_data=f"chk_{tid_code}_{choices[2]}"),
+                    InlineKeyboardButton(f"{choices[3]}", callback_data=f"chk_{tid_code}_{choices[3]}")
+                )
+                
                 msg_toan = (
                     "🛡️ *HỆ THỐNG XÁC MINH CHỐNG BOT* 🛡️\n"
                     "╔══════════════════════╗\n"
                     f"  🎁 Bạn vừa nhận: `+{reward}đ`\n"
                     "╚══════════════════════╝\n"
-                    "👉 *Giải phép toán sau (Bạn có 60s):*\n\n"
-                    f"🧮 ⟨  `{a} {dau} {b} = ?`  ⟩\n\n"
-                    "_(Gõ đáp án bằng số gửi vào đây)_"
+                    "👉 *Chạm vào ĐÁP ÁN ĐÚNG bên dưới (60s):*\n\n"
+                    f"🧮 ⟨  `{a} {dau} {b} = ?`  ⟩"
                 )
-                bot.send_message(uid, msg_toan, parse_mode="Markdown")
+                bot.send_message(uid, msg_toan, parse_mode="Markdown", reply_markup=markup_toan)
             
             # --- NẾU LÀ UPTOLINK: CỘNG THẲNG LÚA ---
             elif t_type == 'uptolink':
                 cursor.execute("UPDATE users SET balance = balance + ?, total_tasks = total_tasks + 1 WHERE user_id=?", (reward, uid))
                 cursor.execute("UPDATE tasks SET status='completed' WHERE task_id=?", (task_id,))
                 
-                # Trả hoa hồng ref
                 cursor.execute("SELECT ref_by FROM users WHERE user_id=?", (uid,))
                 ref_id = cursor.fetchone()[0]
                 if ref_id:
@@ -279,48 +295,54 @@ def xu_ly_start(message):
         )
         bot.send_message(uid, intro, parse_mode="Markdown", reply_markup=menu_chinh())
 
-# ================= TOÁN CỦA LAYMA =================
-@bot.message_handler(func=lambda m: m.text.strip().replace('-', '').isdigit())
-def kiem_tra_toan(message):
-    uid = message.chat.id
-    if is_maintenance(uid): return bot.send_message(uid, "🚧 *HỆ THỐNG ĐANG BẢO TRÌ!* 🚧", parse_mode="Markdown")
+# ================= XỬ LÝ ĐÁP ÁN BẤM NÚT =================
+@bot.callback_query_handler(func=lambda call: call.data.startswith('chk_'))
+def check_toan_inline(call):
+    uid = call.message.chat.id
+    if is_maintenance(uid): return bot.answer_callback_query(call.id, "🚧 HỆ THỐNG ĐANG BẢO TRÌ!", show_alert=True)
     
-    val = int(message.text)
-    cursor.execute("SELECT task_id, answer, reward, time_created FROM tasks WHERE user_id=? AND status='verifying'", (uid,))
+    parts = call.data.split('_')
+    tid = f"task_{parts[1]}"
+    val = int(parts[2])
+    
+    cursor.execute("SELECT answer, reward, time_created FROM tasks WHERE task_id=? AND status='verifying'", (tid,))
     data = cursor.fetchone()
     
-    if data:
-        tid, correct, rw, t_create = data
-        if time.time() - t_create > 60:
-            bot.send_message(uid, "⏰ Quá 60 giây! Mã đã hủy.")
-            cursor.execute("UPDATE tasks SET status='expired' WHERE task_id=?", (tid,))
-            conn.commit()
-            return
+    if not data:
+        bot.edit_message_text("❌ Mã nhiệm vụ không tồn tại hoặc đã được nhận thưởng.", chat_id=uid, message_id=call.message.message_id)
+        return
+        
+    correct, rw, t_create = data
+    if time.time() - t_create > 60:
+        bot.edit_message_text("⏰ Quá 60 giây! Mã đã hủy.", chat_id=uid, message_id=call.message.message_id)
+        cursor.execute("UPDATE tasks SET status='expired' WHERE task_id=?", (tid,))
+        conn.commit()
+        return
 
-        if val == correct:
-            cursor.execute("UPDATE users SET balance = balance + ?, total_tasks = total_tasks + 1 WHERE user_id=?", (rw, uid))
-            cursor.execute("UPDATE tasks SET status='completed' WHERE task_id=?", (tid,))
-            
-            cursor.execute("SELECT ref_by FROM users WHERE user_id=?", (uid,))
-            ref_id = cursor.fetchone()[0]
-            if ref_id:
-                cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (HOA_HONG_REF, ref_id))
-                try: bot.send_message(ref_id, f"💸 *TING TING:* Nhận `+{HOA_HONG_REF}đ` hoa hồng!", parse_mode="Markdown")
-                except: pass
-            conn.commit()
-            
-            msg_ok = (
-                "🎊 *VƯỢT CAPTCHA XUẤT SẮC* 🎊\n"
-                "╔═══════════════════╗\n"
-                f"  💵 Lúa về ví: `+{rw}đ`\n"
-                "╚═══════════════════╝\n"
-                "👉 Tiếp tục cày thâu đêm nào!"
-            )
-            bot.send_message(uid, msg_ok, parse_mode="Markdown", reply_markup=menu_chinh())
-        else:
-            bot.send_message(uid, "❌ Sai bét rồi ông thần! Nhận nhiệm vụ mới đi.")
-            cursor.execute("UPDATE tasks SET status='failed' WHERE task_id=?", (tid,))
-            conn.commit()
+    if val == correct:
+        cursor.execute("UPDATE users SET balance = balance + ?, total_tasks = total_tasks + 1 WHERE user_id=?", (rw, uid))
+        cursor.execute("UPDATE tasks SET status='completed' WHERE task_id=?", (tid,))
+        
+        cursor.execute("SELECT ref_by FROM users WHERE user_id=?", (uid,))
+        ref_id = cursor.fetchone()[0]
+        if ref_id:
+            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (HOA_HONG_REF, ref_id))
+            try: bot.send_message(ref_id, f"💸 *TING TING:* Nhận `+{HOA_HONG_REF}đ` hoa hồng!", parse_mode="Markdown")
+            except: pass
+        conn.commit()
+        
+        msg_ok = (
+            "🎊 *CHÍNH XÁC - LÚA VỀ VÍ* 🎊\n"
+            "╔═══════════════════╗\n"
+            f"  💵 Lúa cộng thêm: `+{rw}đ`\n"
+            "╚═══════════════════╝\n"
+            "👉 Tiếp tục cày thâu đêm nào!"
+        )
+        bot.edit_message_text(msg_ok, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+    else:
+        bot.edit_message_text("❌ Sai bét rồi ông thần! Nhiệm vụ này tạch, vui lòng nhận link mới.", chat_id=uid, message_id=call.message.message_id)
+        cursor.execute("UPDATE tasks SET status='failed' WHERE task_id=?", (tid,))
+        conn.commit()
 
 # ================= MENU CHỨC NĂNG CHÍNH =================
 @bot.message_handler(func=lambda m: m.text in ["🚀 NGUỒN NHIỆM VỤ 🚀", "🎧 Trợ Giúp", "👤 Thông Tin Acc", "👥 Đại Lý (Mời Bạn)", "💳 Rút Lúa"])
@@ -334,7 +356,7 @@ def handle_menu(message):
     if cmd == "🚀 NGUỒN NHIỆM VỤ 🚀":
         cursor.execute("SELECT task_id FROM tasks WHERE user_id=? AND status='verifying'", (uid,))
         if cursor.fetchone():
-            return bot.send_message(uid, "⚠️ Bạn đang có một phép tính chưa giải xong kìa!")
+            return bot.send_message(uid, "⚠️ Bạn đang có một phép tính chưa giải xong ở trên kìa!")
             
         msg_hd = (
             "💎 *TRUNG TÂM KIẾM TIỀN VIP* 💎\n"
@@ -424,7 +446,7 @@ def make_link(call):
             if short_url:
                 cursor.execute("INSERT INTO tasks (task_id, user_id, task_type, status, reward, date_str) VALUES (?, ?, 'layma', 'pending', ?, ?)", (tid, uid, TIEN_LAYMA, today))
                 conn.commit()
-                bot.send_message(uid, f"🔥 *LAYMA SEO (+{TIEN_LAYMA}đ):*\n`{short_url}`\n\n_(Vượt xong quay lại giải toán lấy tiền)_", parse_mode="Markdown")
+                bot.send_message(uid, f"🔥 *LAYMA SEO (+{TIEN_LAYMA}đ):*\n`{short_url}`\n\n_(Vượt xong quay lại CHỌN NÚT để lấy tiền)_", parse_mode="Markdown")
 
         if not short_url: bot.send_message(uid, "❌ API Web đang bận, nhấp lại nút đi ông.")
     except:
