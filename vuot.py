@@ -14,7 +14,6 @@ import threading
 BOT_TOKEN = "8803256348:AAH58katT66W1DrHvw445OTKv2rLGgh88r4"
 ADMIN_ID = "8781909366" 
 ADMIN_USERNAME = "@vanminh2826"
-LINK_MB = "https://mbbank.onelink.me/QPF5?pid=SF%20Email%20Warmup&c=SF_Email_WarmUP_AppInstall&af_force_deeplink=true&af_dp=mbbank%3A%2F%2F&referral_code=39OIJCU6S6FMDBPLDVAAX"
 HOA_HONG_REF = 50       
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -37,7 +36,9 @@ defaults = [
     ('tien_bbmkts', '400'),
     ('max_bbmkts', '1'),
     ('tien_mb', '70000'),
+    ('link_mb', 'https://mbbank.onelink.me/QPF5?pid=SF%20Email%20Warmup&c=SF_Email_WarmUP_AppInstall&af_force_deeplink=true&af_dp=mbbank%3A%2F%2F&referral_code=39OIJCU6S6FMDBPLDVAAX'),
     ('min_rut', '10000'),
+    ('link_group', 'https://t.me/botkiemlua_group'),
     ('start_msg', '👑 *CHÀO MỪNG ĐẾN VỚI HỆ THỐNG KIẾM TIỀN VIP* 👑\n\n💰 *Thu nhập thụ động - Rút tiền mỗi ngày*\n\n🚀 *Quy trình lụm lúa:*\n1️⃣ Chọn nút *🚀 NGUỒN NHIỆM VỤ*.\n2️⃣ Cày Link hoặc Đăng ký App để bào tiền.\n\n💳 *Hỗ trợ:* Min rút siêu thấp rút thẳng Bank/Thẻ Cào.')
 ]
 for k, v in defaults:
@@ -109,9 +110,9 @@ def home():
             @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap');
             * {{ margin: 0; padding: 0; box-sizing: border-box; }}
             body {{ font-family: 'Inter', sans-serif; background: #0b0f19; color: #f8fafc; overflow-x: hidden; }}
-            .navbar {{ background: #111827; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }}
+            .navbar {{ background: #111827; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.5); }}
             .menu-btn {{ font-size: 24px; color: #38bdf8; cursor: pointer; background: none; border: none; margin-right: 15px; }}
-            .logo {{ font-family: 'Orbitron', sans-serif; font-size: 18px; color: #38bdf8; font-weight: bold; text-transform: uppercase; }}
+            .logo {{ font-family: 'Orbitron', sans-serif; font-size: 18px; color: #38bdf8; font-weight: bold; text-transform: uppercase; text-shadow: 0 0 10px rgba(56, 189, 248, 0.5); }}
             
             .sidebar {{ position: fixed; top: 55px; left: -250px; width: 250px; height: calc(100vh - 55px); background: #111827; transition: 0.3s; padding: 20px 0; border-right: 1px solid #1f2937; z-index: 99; overflow-y: auto; }}
             .sidebar.active {{ left: 0; }}
@@ -125,27 +126,29 @@ def home():
             @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(5px); }} to {{ opacity: 1; transform: translateY(0); }} }}
             
             .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }}
-            .stat-box {{ background: #1f2937; padding: 15px; border-radius: 12px; border: 1px solid #374151; }}
+            .stat-box {{ background: #1f2937; padding: 15px; border-radius: 12px; border: 1px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }}
             .stat-box h3 {{ font-size: 11px; color: #94a3b8; text-transform: uppercase; margin-bottom: 5px; }}
             .stat-box p {{ font-size: 18px; font-weight: bold; color: #fff; }}
             
-            .card {{ background: #1f2937; border-radius: 12px; border: 1px solid #374151; padding: 15px; margin-bottom: 20px; }}
-            .card h3 {{ color: #38bdf8; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #374151; padding-bottom: 10px; }}
+            .card {{ background: #1f2937; border-radius: 12px; border: 1px solid #374151; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }}
+            .card h3 {{ color: #38bdf8; margin-bottom: 15px; font-size: 15px; border-bottom: 1px solid #374151; padding-bottom: 10px; text-transform: uppercase; }}
             
             .table-container {{ overflow-x: auto; }}
             table {{ width: 100%; border-collapse: collapse; min-width: 500px; }}
             th, td {{ padding: 10px; text-align: left; border-bottom: 1px solid #374151; font-size: 13px; }}
             th {{ background: #111827; color: #94a3b8; }}
             
-            .btn {{ padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; color: white; display: inline-block; cursor: pointer; border: none; margin-right: 5px; }}
+            .btn {{ padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; color: white; display: inline-block; cursor: pointer; border: none; margin-right: 5px; transition: 0.2s; }}
+            .btn:hover {{ opacity: 0.8; }}
             .btn-green {{ background: #10b981; }} .btn-red {{ background: #ef4444; }} .btn-blue {{ background: #3b82f6; }}
             .badge-red {{ background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight:bold; }}
             .badge-green {{ background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight:bold; }}
             
+            /* Form Cài đặt */
             .input-group {{ margin-bottom: 12px; }}
             .input-group label {{ display: block; color: #94a3b8; font-size: 12px; margin-bottom: 4px; font-weight:bold; }}
-            .input-group input, .input-group textarea {{ width: 100%; padding: 8px; background: #0b0f19; border: 1px solid #374151; color: white; border-radius: 6px; }}
-            .btn-save {{ width: 100%; padding: 10px; background: #38bdf8; color: #0b0f19; font-weight: bold; border: none; border-radius: 6px; font-size: 13px; cursor: pointer; }}
+            .input-group input, .input-group textarea, .input-group select {{ width: 100%; padding: 8px; background: #0b0f19; border: 1px solid #374151; color: white; border-radius: 6px; }}
+            .btn-save {{ width: 100%; padding: 12px; background: #38bdf8; color: #0b0f19; font-weight: bold; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; text-transform: uppercase; box-shadow: 0 4px 10px rgba(56, 189, 248, 0.3); }}
         </style>
     </head>
     <body>
@@ -158,15 +161,16 @@ def home():
             <a onclick="switchTab('tab1', this)" class="menu-item active"><div><i class="fas fa-chart-line"></i> Tổng Quan</div></a>
             <a onclick="switchTab('tab_duyet', this)" class="menu-item"><div><i class="fas fa-file-invoice-dollar"></i> Duyệt Rút Lúa</div> <span style="background:#ef4444;color:white;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:bold;">{len(withdrawals)}</span></a>
             <a onclick="switchTab('tab2', this)" class="menu-item"><div><i class="fas fa-users"></i> Quản Lý User</div></a>
-            <a onclick="switchTab('tab3', this)" class="menu-item"><div><i class="fas fa-cogs"></i> Cài Đặt API & Giá</div></a>
-            <a onclick="switchTab('tab4', this)" class="menu-item"><div><i class="fas fa-bullhorn"></i> Gửi TB Toàn Server</div></a>
+            <a onclick="switchTab('tab3', this)" class="menu-item"><div><i class="fas fa-cogs"></i> Cài Đặt Nâng Cao</div></a>
+            <a onclick="switchTab('tab4', this)" class="menu-item"><div><i class="fas fa-bullhorn"></i> Gửi TB Server</div></a>
         </div>
 
         <div class="main-content">
             <div id="tab1" class="tab-content active">
-                <div class="card" style="text-align:center; color:#38bdf8; font-weight:bold;"><i class="fas fa-clock"></i> Bot Uptime: {uptime_str}</div>
+                <div class="card" style="text-align:center; color:#38bdf8; font-weight:bold; font-size: 18px;"><i class="fas fa-satellite-dish"></i> Bot Uptime: {uptime_str}</div>
                 <div class="stats-grid">
-                    <div class="stat-box"><h3>Tổng Mem</h3><p>{tong_mem}</p></div>
+                    <div class="stat-box"><h3>Tổng Mem</h3><p>{len(users)}</p></div>
+                    <div class="stat-box"><h3>Link Đã Cày</h3><p>{tong_link}</p></div>
                     <div class="stat-box"><h3>Lúa Đang Tồn</h3><p style="color:#10b981;">{tong_du:,}đ</p></div>
                     <div class="stat-box"><h3>Đơn Chờ Duyệt</h3><p style="color:#ef4444;">{len(withdrawals)}</p></div>
                 </div>
@@ -174,7 +178,7 @@ def home():
 
             <div id="tab_duyet" class="tab-content">
                 <div class="card">
-                    <h3><i class="fas fa-money-check-alt"></i> ĐƠN RÚT TIỀN / ĐỔI THẺ</h3>
+                    <h3><i class="fas fa-money-check-alt"></i> DANH SÁCH YÊU CẦU RÚT TIỀN / ĐỔI THẺ</h3>
                     <div class="table-container">
                         <table>
                             <tr><th>Mã</th><th>ID User</th><th>Tiền</th><th>Thông tin</th><th>Hành Động</th></tr>
@@ -183,8 +187,8 @@ def home():
         html += f"""<tr>
             <td>#{w[0]}</td><td>{w[1]}</td><td style='color:#10b981;font-weight:bold;'>{w[2]:,}đ</td><td>{w[3]}</td>
             <td>
-                <a href="/admin/don/{w[0]}/accept" class="btn btn-green"><i class="fas fa-check"></i> Duyệt</a>
-                <a href="/admin/don/{w[0]}/reject" class="btn btn-red"><i class="fas fa-times"></i> Hủy</a>
+                <a href="/admin/don/{w[0]}/accept" class="btn btn-green"><i class="fas fa-check"></i> Duyệt Bill</a>
+                <a href="/admin/don/{w[0]}/reject" class="btn btn-red"><i class="fas fa-times"></i> Hủy & Hoàn Tiền</a>
             </td>
         </tr>"""
     
@@ -220,7 +224,18 @@ def home():
             <div id="tab3" class="tab-content">
                 <div class="card">
                     <form action="/admin/save_settings" method="POST">
-                        <h3 style="margin-top:0;"><i class="fas fa-link"></i> Nguồn Uptolink</h3>
+                        <h3><i class="fas fa-server"></i> TRẠNG THÁI SERVER</h3>
+                        <div class="input-group">
+                            <label>Bảo trì Bot (Tạm dừng mọi hoạt động):</label>
+                            <select name="bao_tri">
+                                <option value="off" {"selected" if get_set('bao_tri') == 'off' else ""}>🟢 ĐANG HOẠT ĐỘNG (OFF BẢO TRÌ)</option>
+                                <option value="on" {"selected" if get_set('bao_tri') == 'on' else ""}>🔴 TẠM KHÓA SERVER (ON BẢO TRÌ)</option>
+                            </select>
+                        </div>
+                        <div class="input-group"><label>🌐 Link Nhóm Giao Lưu (Sẽ hiện trong Lệnh Start & Trợ Giúp):</label><input type="text" name="link_group" value="{get_set('link_group')}"></div>
+
+                        <hr style="border-color:#374151; margin:15px 0;">
+                        <h3><i class="fas fa-link"></i> Nguồn Uptolink</h3>
                         <div class="input-group"><label>API Token:</label><input type="text" name="api_uptolink" value="{get_set('api_uptolink')}"></div>
                         <div style="display:flex;gap:10px;">
                             <div class="input-group" style="flex:1;"><label>Giá (đ):</label><input type="number" name="tien_upto" value="{get_set('tien_upto')}"></div>
@@ -236,12 +251,17 @@ def home():
                         </div>
 
                         <hr style="border-color:#374151; margin:15px 0;">
-                        <h3><i class="fas fa-wallet"></i> Chung</h3>
+                        <h3><i class="fas fa-wallet"></i> Nhiệm Vụ App & Rút Tiền</h3>
+                        <div class="input-group"><label>Link tải MB Bank của Admin:</label><input type="text" name="link_mb" value="{get_set('link_mb')}"></div>
                         <div style="display:flex;gap:10px;">
-                            <div class="input-group" style="flex:1;"><label>Nhiệm vụ MB (đ):</label><input type="number" name="tien_mb" value="{get_set('tien_mb')}"></div>
+                            <div class="input-group" style="flex:1;"><label>Tiền tải MB (đ):</label><input type="number" name="tien_mb" value="{get_set('tien_mb')}"></div>
                             <div class="input-group" style="flex:1;"><label>Min Rút (đ):</label><input type="number" name="min_rut" value="{get_set('min_rut')}"></div>
                         </div>
-                        <button type="submit" class="btn-save"><i class="fas fa-save"></i> LƯU THAY ĐỔI</button>
+                        <div class="input-group">
+                            <label>📝 Lời chào lúc bấm /start:</label>
+                            <textarea name="start_msg" rows="4">{get_set('start_msg')}</textarea>
+                        </div>
+                        <button type="submit" class="btn-save"><i class="fas fa-save"></i> LƯU TẤT CẢ THAY ĐỔI</button>
                     </form>
                 </div>
             </div>
@@ -252,9 +272,9 @@ def home():
                     <form action="/admin/broadcast" method="POST">
                         <div class="input-group">
                             <label>Nhập nội dung (Hỗ trợ định dạng Markdown):</label>
-                            <textarea name="tb_msg" rows="5" placeholder="Nhập thông báo..."></textarea>
+                            <textarea name="tb_msg" rows="5" placeholder="Ví dụ: Đã update link mới, ae vào cày..."></textarea>
                         </div>
-                        <button type="submit" class="btn-save" style="background:#ef4444; color:white;"><i class="fas fa-paper-plane"></i> GỬI NGAY</button>
+                        <button type="submit" class="btn-save" style="background:#ef4444; color:white;"><i class="fas fa-paper-plane"></i> GỬI NGAY CHO DÂN CÀY</button>
                     </form>
                 </div>
             </div>
@@ -281,7 +301,7 @@ def save_settings():
     for key, val in request.form.items():
         cursor.execute("UPDATE settings SET value=? WHERE key=?", (val, key))
     conn.commit()
-    return "<script>alert('Lưu thành công!'); window.location.href='/';</script>"
+    return "<script>alert('Đã lưu cấu hình mới. Áp dụng ngay lập tức!'); window.location.href='/';</script>"
 
 @app.route('/admin/broadcast', methods=['POST'])
 def broadcast():
@@ -295,18 +315,41 @@ def broadcast():
 
 @app.route('/admin/don/<int:did>/<action>')
 def xu_ly_don_web(did, action):
-    cursor.execute("SELECT user_id, amount FROM withdrawals WHERE id=? AND status='pending'", (did,))
+    cursor.execute("SELECT user_id, amount, info FROM withdrawals WHERE id=? AND status='pending'", (did,))
     don = cursor.fetchone()
     if don:
-        uid, amount = don[0], don[1]
+        uid, amount, info = don[0], don[1], don[2]
         if action == 'accept':
             cursor.execute("UPDATE withdrawals SET status='accepted' WHERE id=?", (did,))
-            try: bot.send_message(uid, f"🎉 Đơn rút `{amount:,}đ` của bạn đã được Admin Duyệt & Thanh toán!", parse_mode="Markdown")
+            
+            # TẠO BILL THANH TOÁN XỊN SÒ GỬI CHO KHÁCH
+            bill_msg = f"""🧾 *BIÊN LAI THANH TOÁN* 🧾
+━━━━━━━━━━━━━━━━━━
+✅ *Trạng thái:* Thành công
+💰 *Số tiền:* `{amount:,}đ`
+📝 *Nội dung:* {info}
+⏱️ *Thời gian:* `{datetime.now().strftime('%H:%M %d/%m/%Y')}`
+━━━━━━━━━━━━━━━━━━
+🎉 *Cảm ơn bạn đã cày cuốc cùng HT TOOL!*"""
+            if "THẺ:" in info:
+                bill_msg += "\n\n⚠️ *Lưu ý:* Vui lòng kiểm tra tin nhắn Bot để nhận Mã Thẻ và Seri từ Admin!"
+                
+            try: bot.send_message(uid, bill_msg, parse_mode="Markdown")
             except: pass
+            
         elif action == 'reject':
             cursor.execute("UPDATE withdrawals SET status='rejected' WHERE id=?", (did,))
-            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, uid))
-            try: bot.send_message(uid, f"⚠️ Đơn rút `{amount:,}đ` bị TỪ CHỐI (Sai thông tin/Gian lận). Tiền đã hoàn lại ví Bot.", parse_mode="Markdown")
+            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, uid)) # Hoàn tiền
+            
+            bill_msg = f"""🧾 *BIÊN LAI THANH TOÁN* 🧾
+━━━━━━━━━━━━━━━━━━
+❌ *Trạng thái:* BỊ TỪ CHỐI / HỦY BỎ
+💰 *Số tiền hoàn lại:* `{amount:,}đ`
+📝 *Nội dung:* {info}
+⚠️ *Lý do:* Sai thông tin Ngân hàng/Thẻ cào hoặc phát hiện gian lận.
+━━━━━━━━━━━━━━━━━━
+👉 Tiền đã được hoàn lại vào ví Bot của bạn."""
+            try: bot.send_message(uid, bill_msg, parse_mode="Markdown")
             except: pass
         conn.commit()
     return "<script>window.location.href='/';</script>"
@@ -324,7 +367,12 @@ def unban_user(uid):
     return f"<script>window.location.href='/';</script>"
 
 def run_server():
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 10000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+
+def keep_alive():
+    t = threading.Thread(target=run_server)
+    t.start()
 
 # ================= GIAO DIỆN NÚT BẤM TELEGRAM =================
 def menu_chinh():
@@ -341,7 +389,7 @@ def input_rut_bank(message, max_amount):
     cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id=?", (max_amount, uid))
     cursor.execute("INSERT INTO withdrawals (user_id, amount, info, time_created) VALUES (?, ?, ?, ?)", (uid, max_amount, f"BANK: {message.text}", time.time()))
     conn.commit()
-    bot.send_message(uid, "✅ *ĐƠN BANK ĐÃ LÊN HỆ THỐNG!*\nChờ Admin duyệt.", parse_mode="Markdown", reply_markup=menu_chinh())
+    bot.send_message(uid, "✅ *ĐƠN BANK ĐÃ LÊN HỆ THỐNG!*\nChờ Admin duyệt và nhận Bill nhé.", parse_mode="Markdown", reply_markup=menu_chinh())
     try: bot.send_message(ADMIN_ID, f"🚨 *CÓ ĐƠN BANK MỚI*\nTiền: `{max_amount:,}đ`", parse_mode="Markdown")
     except: pass
 
@@ -359,7 +407,7 @@ def input_doi_the(message, max_amount):
         # Bắt lỗi nhập mệnh giá bậy bạ
         valid = [10000, 20000, 50000, 100000, 200000, 500000]
         if gia not in valid:
-            bot.send_message(uid, "❌ *MỆNH GIÁ KHÔNG HỢP LỆ!*\n\n⚠️ Hệ thống chỉ hỗ trợ thẻ: `10k`, `20k`, `50k`, `100k`, `200k`, `50k`.\n🚫 Mấy loại 15k, 23k, 40k... GHI VÀO SẼ BỊ TỪ CHỐI!\n\n👉 Vui lòng vào lại mục *💳 Rút Lúa* để đặt lệnh lại.", parse_mode="Markdown", reply_markup=menu_chinh())
+            bot.send_message(uid, "❌ *MỆNH GIÁ KHÔNG HỢP LỆ!*\n\n⚠️ Hệ thống chỉ hỗ trợ thẻ: `10k, 20k, 50k, 100k, 200k, 500k`.\n🚫 Mấy loại 15k, 23k, 40k... GHI VÀO SẼ BỊ TỪ CHỐI!\n\n👉 Vui lòng vào lại mục *💳 Rút Lúa* để đặt lệnh lại.", parse_mode="Markdown", reply_markup=menu_chinh())
             return
             
         if gia > max_amount:
@@ -400,8 +448,8 @@ def chon_kieu_rut(call):
             f"`TÊN NHÀ MẠNG - MỆNH GIÁ`\n"
             f"*(Ví dụ: VIETTEL - 10k)*\n\n"
             f"⚠️ *LƯU Ý CỰC KỲ QUAN TRỌNG:*\n"
-            f"Chỉ chấp nhận các mệnh giá chuẩn: `10k`, `20k`, `50k`, `100k`, `200k`, `500k`.\n"
-            f"Ai cố tình ghi 15k, 40k... hệ thống sẽ không duyệt!"
+            f"Chỉ chấp nhận các mệnh giá chuẩn: `10k, 20k, 50k, 100k, 200k, 500k`.\n"
+            f"Ai cố tình ghi 15k, 40k... hệ thống sẽ không duyệt và hoàn tiền!"
         )
         m = bot.edit_message_text(huong_dan, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
         bot.register_next_step_handler(m, input_doi_the, bal)
@@ -412,7 +460,7 @@ def handle_menu(message):
     uid = message.chat.id
     check_user(uid)
     if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản bị khóa!*", parse_mode="Markdown")
-    if is_maintenance(uid): return bot.send_message(uid, "🚧 *BẢO TRÌ!* Quay lại sau!", parse_mode="Markdown")
+    if is_maintenance(uid): return bot.send_message(uid, "🚧 *SERVER ĐANG BẢO TRÌ!* Vui lòng quay lại sau.", parse_mode="Markdown")
 
     cmd = message.text
 
@@ -445,12 +493,16 @@ def handle_menu(message):
         markup = InlineKeyboardMarkup()
         markup.row(InlineKeyboardButton("🥇 Top Cày Link", callback_data="bxh_link"), InlineKeyboardButton("🔥 Top Ref", callback_data="bxh_ref"))
         bot.send_message(uid, "🏆 Chọn bảng xếp hạng:", reply_markup=markup)
+        
     elif cmd == "🎧 Trợ Giúp":
-        bot.send_message(uid, f"Hỗ trợ: {ADMIN_USERNAME}")
+        ht = f"🛡️ *TỔNG ĐÀI HỖ TRỢ* 🛡️\n━━━━━━━━━━━━━━━━━━\n👤 Admin xử lý Lỗi & Duyệt tiền: {ADMIN_USERNAME}\n\n👥 *Tham gia Nhóm Giao lưu để nhận thêm kèo mới:*\n👉 {get_set('link_group')}"
+        bot.send_message(uid, ht, disable_web_page_preview=True, parse_mode="Markdown")
+        
     elif cmd == "👤 Thông Tin Acc":
         cursor.execute("SELECT balance, total_tasks FROM users WHERE user_id=?", (uid,))
         d = cursor.fetchone()
         bot.send_message(uid, f"👤 *HỒ SƠ CỦA BẠN*\n╔═══════════════════╗\n 🆔 ID: `{uid}`\n 💵 Số Dư: `{d[0]:,}đ`\n 🎯 Đã cày: `{d[1]} nhiệm vụ`\n╚═══════════════════╝", parse_mode="Markdown")
+        
     elif cmd == "👥 Đại Lý (Mời Bạn)":
         bot.send_message(uid, f"🤝 Thưởng: `{HOA_HONG_REF}đ`/link\n🔗 Link:\n`https://t.me/{bot.get_me().username}?start=ref{uid}`", parse_mode="Markdown")
 
@@ -474,7 +526,8 @@ def handle_tasks(call):
             if res.get("status") == "success":
                 cursor.execute("INSERT INTO tasks (task_id, user_id, task_type, status, reward, date_str) VALUES (?, ?, 'uptolink', 'pending', ?, ?)", (tid, uid, int(get_set('tien_upto')), today))
                 conn.commit()
-                bot.send_message(uid, f"🔗 *UPTOLINK (+{get_set('tien_upto')}đ):*\n`{res['shortenedUrl']}`\n_(Vượt xong quay lại Bot giải toán)_", parse_mode="Markdown")
+                msg_link = f"🔗 *UPTOLINK (+{get_set('tien_upto')}đ):*\n`{res['shortenedUrl']}`\n\n💡 *HƯỚNG DẪN:* Nhấn vào link trên -> Xác minh Captcha -> Tìm nút 'Lấy mã' -> Vượt xong quay lại Bot giải toán để nhận lúa!"
+                bot.send_message(uid, msg_link, parse_mode="Markdown")
             else: bot.send_message(uid, "❌ API Uptolink bận.")
         except: bot.send_message(uid, "❌ Lỗi mạng máy chủ.")
 
@@ -486,19 +539,32 @@ def handle_tasks(call):
         tid = 'task_' + ''.join(random.choices(string.ascii_letters + string.digits, k=6))
         target = f"https://telegram.me/{bot.get_me().username}?start={tid}"
         
-        # API BBMKTS chuẩn form JSON sếp đưa
         api_url = f"https://bbmkts.com/dapi?token={get_set('api_bbmkts')}&longurl={requests.utils.quote(target)}"
         try:
             res = requests.get(api_url).json()
             if res.get("status") == "success":
                 cursor.execute("INSERT INTO tasks (task_id, user_id, task_type, status, reward, date_str) VALUES (?, ?, 'bbmkts', 'pending', ?, ?)", (tid, uid, int(get_set('tien_bbmkts')), today))
                 conn.commit()
-                bot.send_message(uid, f"🔗 *BBMKTS (+{get_set('tien_bbmkts')}đ):*\n`{res['bbmktsUrl']}`\n_(Vượt xong quay lại Bot giải toán)_", parse_mode="Markdown")
+                msg_link = f"🔗 *BBMKTS (+{get_set('tien_bbmkts')}đ):*\n`{res['bbmktsUrl']}`\n\n💡 *HƯỚNG DẪN:* Bấm vào link -> Lướt tìm nút lấy mã -> Vượt xong quay lại Bot giải toán để nhận lúa!"
+                bot.send_message(uid, msg_link, parse_mode="Markdown")
             else: bot.send_message(uid, f"❌ Lỗi BBMKTS: {res.get('message', 'Unkown')}")
         except: bot.send_message(uid, "❌ Lỗi mạng máy chủ BBMKTS.")
 
     elif call.data == "menu_bank":
-        msg = f"🚀 *TẢI APP MB BANK*\n👉 Link: {LINK_MB}\nChụp ảnh Đã Đăng Nhập gửi vào đây để nhận `{int(get_set('tien_mb')):,}đ`"
+        tien_mb = int(get_set('tien_mb'))
+        msg = f"""🚀 *NHIỆM VỤ ĐẶC BIỆT: TẢI APP MB BANK* 🚀
+💰 *Thưởng nóng:* `{tien_mb:,}đ`
+
+📝 *HƯỚNG DẪN CHI TIẾT (ĐỌC KỸ TRÁNH MẤT TIỀN):*
+Bước 1️⃣: Xóa app MB Bank cũ (nếu có trong máy). Nhấn vào link tải app bên dưới.
+👉 *Link Tải App:* {get_set('link_mb')}
+Bước 2️⃣: Mở app lên, chọn "Đăng ký ngay". Nhập SĐT, xác minh mã OTP.
+Bước 3️⃣: Chụp mặt trước/sau CCCD và quay video khuôn mặt (eKYC).
+Bước 4️⃣: Điền thông tin cá nhân. Tới phần Chọn Tài Khoản thì chọn loại Tài Khoản Miễn Phí.
+Bước 5️⃣: **QUAN TRỌNG NHẤT:** MB Bank sẽ gửi Mật Khẩu về tin nhắn SMS. Bạn BẮT BUỘC phải dùng mật khẩu đó để ĐĂNG NHẬP lại vào App MB Bank lần đầu tiên.
+Bước 6️⃣: Chụp ảnh Màn hình chính (Đã đăng nhập thành công) gửi vào đây để nhận tiền!
+
+⏳ *Admin sẽ kiểm tra cực kỹ, làm đúng 100% lúa sẽ về ví!*"""
         bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown", disable_web_page_preview=True)
 
     elif call.data == "bxh_link":
@@ -516,11 +582,11 @@ def handle_tasks(call):
 def xu_ly_anh(message):
     uid = message.chat.id
     if is_banned(uid) or is_maintenance(uid): return
-    bot.reply_to(message, "✅ Đã chuyển ảnh lên Admin!")
+    bot.reply_to(message, "✅ Đã nhận được ảnh! Hệ thống đã chuyển lên Admin, vui lòng chờ duyệt.")
     tien = int(get_set('tien_mb'))
     markup = InlineKeyboardMarkup()
     markup.row(InlineKeyboardButton(f"✅ Duyệt {tien:,}đ", callback_data=f"bank_duyet_{uid}"), InlineKeyboardButton("❌ Hủy", callback_data=f"bank_huy_{uid}"))
-    try: bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"ID: `{uid}`", parse_mode="Markdown", reply_markup=markup)
+    try: bot.send_photo(ADMIN_ID, message.photo[-1].file_id, caption=f"🚨 *CÓ ĐƠN DUYỆT MB MỚI*\nID: `{uid}`", parse_mode="Markdown", reply_markup=markup)
     except: pass
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('bank_'))
@@ -531,19 +597,29 @@ def duyet_bank(call):
     if action == 'duyet':
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (tien, uid))
         conn.commit()
-        bot.edit_message_caption("✅ ĐÃ DUYỆT", chat_id=ADMIN_ID, message_id=call.message.message_id)
-        try: bot.send_message(uid, f"🎉 Nhận `+{tien:,}đ` từ MB Bank!")
+        bot.edit_message_caption("✅ ĐÃ DUYỆT CỘNG TIỀN", chat_id=ADMIN_ID, message_id=call.message.message_id)
+        
+        bill_msg = f"""🧾 *BIÊN LAI THANH TOÁN* 🧾
+━━━━━━━━━━━━━━━━━━
+✅ *Trạng thái:* Thành công
+💰 *Tiền thưởng MB:* `+{tien:,}đ`
+⏱️ *Thời gian:* `{datetime.now().strftime('%H:%M %d/%m/%Y')}`
+━━━━━━━━━━━━━━━━━━
+🎉 *Cảm ơn bạn đã cày cuốc cùng HT TOOL!*"""
+        try: bot.send_message(uid, bill_msg, parse_mode="Markdown")
         except: pass
     else:
-        bot.edit_message_caption("❌ ĐÃ HỦY", chat_id=ADMIN_ID, message_id=call.message.message_id)
+        bot.edit_message_caption("❌ ĐÃ TỪ CHỐI ẢNH", chat_id=ADMIN_ID, message_id=call.message.message_id)
+        try: bot.send_message(uid, f"⚠️ *THÔNG BÁO:* Ảnh nhiệm vụ MB Bank của bạn BỊ TỪ CHỐI do không hợp lệ hoặc sai luồng đăng ký.", parse_mode="Markdown")
+        except: pass
 
 # ================= XÁC MINH ROBOT GIẢI TOÁN / START =================
 @bot.message_handler(commands=['start'])
 def xu_ly_start(message):
     uid = message.chat.id
     check_user(uid)
-    if is_banned(uid): return
-    if is_maintenance(uid): return bot.send_message(uid, "🚧 HỆ THỐNG ĐANG BẢO TRÌ!")
+    if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản bị khóa vi phạm chính sách!*", parse_mode="Markdown")
+    if is_maintenance(uid): return bot.send_message(uid, "🚧 *SERVER ĐANG BẢO TRÌ!*", parse_mode="Markdown")
     
     parts = message.text.split()
     if len(parts) > 1 and parts[1].startswith('ref'):
@@ -567,9 +643,12 @@ def xu_ly_start(message):
             markup = InlineKeyboardMarkup()
             markup.row(InlineKeyboardButton(f"{c[0]}", callback_data=f"chk_{tid.split('_')[1]}_{c[0]}"), InlineKeyboardButton(f"{c[1]}", callback_data=f"chk_{tid.split('_')[1]}_{c[1]}"))
             markup.row(InlineKeyboardButton(f"{c[2]}", callback_data=f"chk_{tid.split('_')[1]}_{c[2]}"), InlineKeyboardButton(f"{c[3]}", callback_data=f"chk_{tid.split('_')[1]}_{c[3]}"))
-            bot.send_message(uid, f"🧮 Xác minh Robot: `{a} + {b} = ?`", parse_mode="Markdown", reply_markup=markup)
+            bot.send_message(uid, f"🧮 Xác minh Robot để nhận tiền:\n`{a} + {b} = ?`", parse_mode="Markdown", reply_markup=markup)
         else: bot.send_message(uid, "❌ Link nhiệm vụ đã hết hạn hoặc mã sai.")
-    else: bot.send_message(uid, get_set('start_msg'), parse_mode="Markdown", reply_markup=menu_chinh())
+    else: 
+        # Hiển thị lời chào kèm Link Nhóm
+        msg = f"{get_set('start_msg')}\n\n👥 *Tham gia Nhóm Hỗ Trợ/Giao Lưu:*\n👉 {get_set('link_group')}"
+        bot.send_message(uid, msg, parse_mode="Markdown", reply_markup=menu_chinh())
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('chk_'))
 def check_toan(call):
