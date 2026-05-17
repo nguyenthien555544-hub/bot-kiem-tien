@@ -11,22 +11,22 @@ from flask import Flask, request
 import threading
 
 # ================= CẤU HÌNH BOT CƠ BẢN =================
-BOT_TOKEN = ""
-ADMIN_ID =
-ADMIN_USERNAME 
+BOT_TOKEN = "8803256348:AAH58katT66W1DrHvw445OTKv2rLGgh88r4"
+ADMIN_ID = "8781909366" 
+ADMIN_USERNAME = "@vanminh2826"
 HOA_HONG_REF = 50       
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# ================= DATABASE & LƯU TRỮ VĨNH VIỄN =================
+# ================= DATABASE & LƯU TRỮ =================
 conn = sqlite3.connect('bot_upto_master.db', check_same_thread=False)
 cursor = conn.cursor()
+
 cursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY, balance INTEGER, total_tasks INTEGER DEFAULT 0, ref_by INTEGER, status TEXT DEFAULT 'active')''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (task_id TEXT PRIMARY KEY, user_id INTEGER, status TEXT, reward INTEGER, answer INTEGER, time_created REAL, date_str TEXT, task_type TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS withdrawals (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, amount INTEGER, info TEXT, status TEXT DEFAULT 'pending', time_created REAL)''')
 
-# Nạp Cài Đặt Mặc Định Lần Đầu
 defaults = [
     ('bao_tri', 'off'),
     ('api_uptolink', '2f2a6f9894f02956c31f64fa2387a4d67cc36658'),
@@ -45,13 +45,11 @@ for k, v in defaults:
     cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)", (k, v))
 conn.commit()
 
-# Hàm lấy cài đặt từ DB
 def get_set(key, default_val=""):
     cursor.execute("SELECT value FROM settings WHERE key=?", (key,))
     res = cursor.fetchone()
     return res[0] if res else default_val
 
-# ================= FIX LỖI UPTIME BỊ RESET =================
 cursor.execute("SELECT value FROM settings WHERE key='start_time'")
 res_time = cursor.fetchone()
 if not res_time:
@@ -61,7 +59,7 @@ if not res_time:
 else:
     START_TIME = float(res_time[0])
 
-# ================= HỆ THỐNG QUẢN LÝ USER =================
+# ================= QUẢN LÝ USER =================
 def check_user(uid):
     cursor.execute("SELECT user_id FROM users WHERE user_id=?", (uid,))
     if not cursor.fetchone():
@@ -82,7 +80,7 @@ def is_maintenance(uid):
 def get_today_str():
     return datetime.now().strftime("%Y-%m-%d")
 
-# ================= SERVER WEB RENDER (DASHBOARD ADMIN NÂNG CẤP) =================
+# ================= WEB DASHBOARD RENDER =================
 app = Flask(__name__)
 
 @app.route('/')
@@ -295,7 +293,6 @@ def home():
     """
     return html
 
-# --- ROUTE XỬ LÝ FORM TỪ WEB ---
 @app.route('/admin/save_settings', methods=['POST'])
 def save_settings():
     for key, val in request.form.items():
@@ -322,7 +319,6 @@ def xu_ly_don_web(did, action):
         if action == 'accept':
             cursor.execute("UPDATE withdrawals SET status='accepted' WHERE id=?", (did,))
             
-            # TẠO BILL THANH TOÁN XỊN SÒ GỬI CHO KHÁCH
             bill_msg = f"""🧾 *BIÊN LAI THANH TOÁN* 🧾
 ━━━━━━━━━━━━━━━━━━
 ✅ *Trạng thái:* Thành công
@@ -370,10 +366,6 @@ def run_server():
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
-def keep_alive():
-    t = threading.Thread(target=run_server)
-    t.start()
-
 # ================= GIAO DIỆN NÚT BẤM TELEGRAM =================
 def menu_chinh():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
@@ -401,10 +393,8 @@ def input_doi_the(message, max_amount):
         if '-' not in text: raise Exception()
         mang, gia_str = text.split('-')
         mang = mang.strip()
-        # Chuyển đổi linh hoạt: 10k, 10.000, 10,000 đều thành 10000
         gia = int(gia_str.strip().lower().replace('k', '000').replace(',', '').replace('.', ''))
         
-        # Bắt lỗi nhập mệnh giá bậy bạ
         valid = [10000, 20000, 50000, 100000, 200000, 500000]
         if gia not in valid:
             bot.send_message(uid, "❌ *MỆNH GIÁ KHÔNG HỢP LỆ!*\n\n⚠️ Hệ thống chỉ hỗ trợ thẻ: `10k, 20k, 50k, 100k, 200k, 500k`.\n🚫 Mấy loại 15k, 23k, 40k... GHI VÀO SẼ BỊ TỪ CHỐI!\n\n👉 Vui lòng vào lại mục *💳 Rút Lúa* để đặt lệnh lại.", parse_mode="Markdown", reply_markup=menu_chinh())
@@ -448,7 +438,7 @@ def chon_kieu_rut(call):
             f"`TÊN NHÀ MẠNG - MỆNH GIÁ`\n"
             f"*(Ví dụ: VIETTEL - 10k)*\n\n"
             f"⚠️ *LƯU Ý CỰC KỲ QUAN TRỌNG:*\n"
-            f"Chỉ chấp nhận các mệnh giá chuẩn: `10k, 20k, 50k, 100k, 200k, 500k`.\n"
+            f"Chỉ chấp nhận các mệnh giá chuẩn: `10k`, `20k`, `50k`, `100k`, `200k`, `500k`.\n"
             f"Ai cố tình ghi 15k, 40k... hệ thống sẽ không duyệt và hoàn tiền!"
         )
         m = bot.edit_message_text(huong_dan, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
@@ -506,7 +496,7 @@ def handle_menu(message):
     elif cmd == "👥 Đại Lý (Mời Bạn)":
         bot.send_message(uid, f"🤝 Thưởng: `{HOA_HONG_REF}đ`/link\n🔗 Link:\n`https://t.me/{bot.get_me().username}?start=ref{uid}`", parse_mode="Markdown")
 
-# ================= API VƯỢT LINK (UPTOLINK & BBMKTS) =================
+# ================= API VƯỢT LINK =================
 @bot.callback_query_handler(func=lambda call: call.data in ["get_uptolink", "get_bbmkts", "bxh_link", "bxh_ref", "menu_bank"])
 def handle_tasks(call):
     uid = call.message.chat.id
@@ -567,17 +557,7 @@ Bước 6️⃣: Chụp ảnh Màn hình chính (Đã đăng nhập thành công
 ⏳ *Admin sẽ kiểm tra cực kỹ, làm đúng 100% lúa sẽ về ví!*"""
         bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown", disable_web_page_preview=True)
 
-    elif call.data == "bxh_link":
-        cursor.execute("SELECT user_id, total_tasks FROM users WHERE total_tasks > 0 ORDER BY total_tasks DESC LIMIT 10")
-        msg = "🥇 *TOP CÀY CHAY*\n" + "\n".join([f"`{str(r[0])[:-3]}***` ➔ {r[1]} link" for r in cursor.fetchall()])
-        bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
-        
-    elif call.data == "bxh_ref":
-        cursor.execute("SELECT ref_by, COUNT(*) as c FROM users WHERE ref_by IS NOT NULL GROUP BY ref_by ORDER BY c DESC LIMIT 10")
-        msg = "🔥 *TOP TUYỂN REF*\n" + "\n".join([f"`{str(r[0])[:-3]}***` ➔ {r[1]} mem" for r in cursor.fetchall()])
-        bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
-
-# ================= XỬ LÝ ẢNH TẢI APP & DUYỆT =================
+# ================= XỬ LÝ ẢNH TẢI APP =================
 @bot.message_handler(content_types=['photo'])
 def xu_ly_anh(message):
     uid = message.chat.id
@@ -613,7 +593,7 @@ def duyet_bank(call):
         try: bot.send_message(uid, f"⚠️ *THÔNG BÁO:* Ảnh nhiệm vụ MB Bank của bạn BỊ TỪ CHỐI do không hợp lệ hoặc sai luồng đăng ký.", parse_mode="Markdown")
         except: pass
 
-# ================= XÁC MINH ROBOT GIẢI TOÁN / START =================
+# ================= XÁC MINH ROBOT =================
 @bot.message_handler(commands=['start'])
 def xu_ly_start(message):
     uid = message.chat.id
@@ -646,7 +626,6 @@ def xu_ly_start(message):
             bot.send_message(uid, f"🧮 Xác minh Robot để nhận tiền:\n`{a} + {b} = ?`", parse_mode="Markdown", reply_markup=markup)
         else: bot.send_message(uid, "❌ Link nhiệm vụ đã hết hạn hoặc mã sai.")
     else: 
-        # Hiển thị lời chào kèm Link Nhóm
         msg = f"{get_set('start_msg')}\n\n👥 *Tham gia Nhóm Hỗ Trợ/Giao Lưu:*\n👉 {get_set('link_group')}"
         bot.send_message(uid, msg, parse_mode="Markdown", reply_markup=menu_chinh())
 
@@ -676,5 +655,9 @@ def check_toan(call):
         bot.edit_message_text("❌ Tính toán sai bét! Nhiệm vụ thất bại.", chat_id=uid, message_id=call.message.message_id)
 
 if __name__ == "__main__":
+    # Dòng này cực kỳ quan trọng để giải bùa Webhook cũ, giúp Render chạy mượt!
+    bot.remove_webhook()
+    # Chạy Web Dashboard
     threading.Thread(target=run_server).start()
+    # Chạy Bot Telegram
     bot.infinity_polling()
