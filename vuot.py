@@ -10,9 +10,6 @@ from datetime import datetime
 from flask import Flask
 import threading
 
-# ================= MỐC THỜI GIAN ĐỂ TÍNH UPTIME =================
-START_TIME = time.time()
-
 # ================= CẤU HÌNH BOT & API =================
 BOT_TOKEN = "8803256348:AAH58katT66W1DrHvw445OTKv2rLGgh88r4"
 ADMIN_ID = "8781909366" 
@@ -39,7 +36,6 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY,
 cursor.execute('''CREATE TABLE IF NOT EXISTS tasks (task_id TEXT PRIMARY KEY, user_id INTEGER, status TEXT, reward INTEGER, answer INTEGER, time_created REAL, date_str TEXT)''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT)''')
 
-# Nâng cấp Database: Thêm cột task_type và status (Để BAN user)
 try: cursor.execute("ALTER TABLE tasks ADD COLUMN task_type TEXT DEFAULT 'uptolink'")
 except: pass
 try: cursor.execute("ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'")
@@ -48,7 +44,24 @@ except: pass
 cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('bao_tri', 'off')")
 conn.commit()
 
+# ================= FIX LỖI UPTIME BỊ RESET =================
+cursor.execute("SELECT value FROM settings WHERE key='start_time'")
+res_time = cursor.fetchone()
+if not res_time:
+    START_TIME = time.time()
+    cursor.execute("INSERT INTO settings (key, value) VALUES ('start_time', ?)", (str(START_TIME),))
+    conn.commit()
+else:
+    START_TIME = float(res_time[0])
+
 # ================= HỆ THỐNG QUẢN LÝ USER =================
+def check_user(uid):
+    """Fix lỗi bấm nút im ru: Đảm bảo user luôn tồn tại trong DB"""
+    cursor.execute("SELECT user_id FROM users WHERE user_id=?", (uid,))
+    if not cursor.fetchone():
+        cursor.execute("INSERT INTO users (user_id, balance, total_tasks, ref_by, status) VALUES (?, 0, 0, NULL, 'active')", (uid,))
+        conn.commit()
+
 def is_banned(uid):
     cursor.execute("SELECT status FROM users WHERE user_id=?", (uid,))
     res = cursor.fetchone()
@@ -76,12 +89,11 @@ def home():
     h = (uptime_sec % 86400) // 3600
     m = (uptime_sec % 3600) // 60
     s = uptime_sec % 60
-    uptime_str = f"{d}:{h:02d}:{m:02d}:{s:02d}"
+    uptime_str = f"{d} Ngày {h:02d}:{m:02d}:{s:02d}"
 
     # Thống kê
     cursor.execute("SELECT user_id, balance, total_tasks, ref_by, status FROM users ORDER BY total_tasks DESC")
     users = cursor.fetchall()
-    
     tong_mem = len(users)
     tong_link = sum(u[2] for u in users)
     tong_du = sum(u[1] for u in users)
@@ -90,55 +102,105 @@ def home():
     <html>
     <head>
         <meta name='viewport' content='width=device-width, initial-scale=1'>
-        <title>Trạm Điều Hành VVIP 5.0</title>
+        <title>VVIP 5.0 Dashboard</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
         <style>
-            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }}
-            h2 {{ color: #38bdf8; text-align: center; font-size: 28px; text-transform: uppercase; }}
-            .container {{ max-width: 900px; margin: 0 auto; background: #1e293b; padding: 25px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.5); }}
-            .stats-grid {{ display: flex; justify-content: space-between; margin-bottom: 20px; text-align: center; flex-wrap: wrap; }}
-            .stat-box {{ background: #334155; padding: 15px; border-radius: 8px; width: 22%; margin-bottom: 10px; border-bottom: 4px solid #38bdf8; }}
-            .stat-box h3 {{ margin: 0; font-size: 14px; color: #94a3b8; }}
-            .stat-box p {{ margin: 5px 0 0; font-size: 22px; font-weight: bold; color: #fff; }}
-            .uptime {{ text-align: center; color: #10b981; font-weight: bold; font-size: 20px; margin-bottom: 20px; }}
-            table {{ width: 100%; border-collapse: collapse; margin-top: 10px; }}
-            th, td {{ border: 1px solid #475569; padding: 12px; text-align: center; }}
-            th {{ background: #0f172a; color: #38bdf8; }}
-            tr:nth-child(even) {{ background-color: #1e293b; }}
-            tr:hover {{ background-color: #334155; }}
-            .badge-green {{ background: #10b981; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; }}
-            .badge-red {{ background: #ef4444; padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; }}
-            .btn-ban {{ background: #ef4444; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px; }}
-            .btn-unban {{ background: #10b981; color: white; padding: 6px 12px; text-decoration: none; border-radius: 4px; font-weight: bold; font-size: 12px; }}
+            @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap');
+            * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+            body {{ font-family: 'Inter', sans-serif; background: #0b0f19; color: #f8fafc; overflow-x: hidden; }}
+            
+            /* Navbar & Sidebar */
+            .navbar {{ background: #111827; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }}
+            .menu-btn {{ font-size: 24px; color: #38bdf8; cursor: pointer; background: none; border: none; outline: none; margin-right: 15px; }}
+            .logo {{ font-family: 'Orbitron', sans-serif; font-size: 20px; color: #38bdf8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }}
+            
+            .sidebar {{ position: fixed; top: 60px; left: -250px; width: 250px; height: calc(100vh - 60px); background: #111827; transition: 0.3s; padding: 20px 0; border-right: 1px solid #1f2937; z-index: 99; }}
+            .sidebar.active {{ left: 0; }}
+            .sidebar a {{ display: block; padding: 15px 25px; color: #94a3b8; text-decoration: none; font-size: 16px; border-left: 3px solid transparent; transition: 0.2s; }}
+            .sidebar a:hover, .sidebar a.active {{ background: #1f2937; color: #38bdf8; border-left-color: #38bdf8; }}
+            .sidebar a i {{ margin-right: 10px; width: 20px; text-align: center; }}
+
+            /* Main Content */
+            .main-content {{ padding: 25px; transition: 0.3s; margin-left: 0; }}
+            .main-content.shifted {{ margin-left: 250px; }}
+            
+            .uptime-box {{ background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); }}
+            
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }}
+            .stat-box {{ background: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; }}
+            .stat-box h3 {{ font-size: 14px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }}
+            .stat-box p {{ font-size: 24px; font-weight: 700; color: #fff; font-family: 'Orbitron', sans-serif; }}
+            .text-green {{ color: #10b981 !important; }}
+            .text-gold {{ color: #fbbf24 !important; }}
+
+            /* Table */
+            .table-container {{ background: #1f2937; border-radius: 12px; overflow-x: auto; border: 1px solid #374151; }}
+            table {{ width: 100%; border-collapse: collapse; min-width: 600px; }}
+            th, td {{ padding: 15px; text-align: left; border-bottom: 1px solid #374151; }}
+            th {{ background: #111827; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 13px; }}
+            tr:hover {{ background: #374151; }}
+            .badge-green {{ background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }}
+            .badge-red {{ background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }}
+            .btn {{ padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; transition: 0.2s; }}
+            .btn-ban {{ background: #ef4444; color: #fff; }}
+            .btn-ban:hover {{ background: #dc2626; }}
+            .btn-unban {{ background: #10b981; color: #fff; }}
+
+            @media (max-width: 768px) {{
+                .main-content.shifted {{ margin-left: 0; }}
+                .stats-grid {{ grid-template-columns: 1fr 1fr; }}
+            }}
         </style>
     </head>
     <body>
-        <div class='container'>
-            <h2>🛸 TRUNG TÂM KIỂM SOÁT SERVER 🛸</h2>
-            <div class='uptime'>⏱️ Thời gian Bot chạy liên tục: {uptime_str}</div>
+        <div class="navbar">
+            <button class="menu-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
+            <div class="logo">Trạm Điều Hành Bot</div>
+        </div>
+
+        <div class="sidebar" id="sidebar">
+            <a href="#" class="active"><i class="fas fa-chart-line"></i> Bảng Tổng Quan</a>
+            <a href="#"><i class="fas fa-users"></i> Quản Lý Dân Cày</a>
+            <a href="#"><i class="fas fa-cogs"></i> Cài Đặt Server</a>
+        </div>
+
+        <div class="main-content" id="main">
+            <div class="uptime-box">
+                <i class="fas fa-clock"></i> Thời gian Bot sống: {uptime_str}
+            </div>
             
-            <div class='stats-grid'>
-                <div class='stat-box'><h3>Tổng Thành Viên</h3><p>{tong_mem} ae</p></div>
-                <div class='stat-box'><h3>Tổng Link Đã Cày</h3><p>{tong_link}</p></div>
-                <div class='stat-box'><h3>Lúa Đang Tồn Đọng</h3><p style="color:#10b981;">{tong_du:,}đ</p></div>
-                <div class='stat-box'><h3>Nhiệm Vụ MB Bank</h3><p style="color:#fbbf24;">{TIEN_MB:,}đ</p></div>
+            <div class="stats-grid">
+                <div class="stat-box"><h3><i class="fas fa-users"></i> Tổng Mem</h3><p>{tong_mem}</p></div>
+                <div class="stat-box"><h3><i class="fas fa-link"></i> Link Đã Cày</h3><p>{tong_link}</p></div>
+                <div class="stat-box"><h3><i class="fas fa-wallet"></i> Lúa Tồn Đọng</h3><p class="text-green">{tong_du:,}đ</p></div>
+                <div class="stat-box"><h3><i class="fas fa-gift"></i> Rate App MB</h3><p class="text-gold">{TIEN_MB:,}đ</p></div>
             </div>
 
-            <table>
-                <tr><th>ID Telegram</th><th>Trạng Thái</th><th>Số Dư (VNĐ)</th><th>Tổng Link</th><th>Hành Động</th></tr>
+            <div class="table-container">
+                <table>
+                    <tr><th>ID Telegram</th><th>Trạng Thái</th><th>Số Dư</th><th>Tổng Link</th><th>Hành Động</th></tr>
     """
     for u in users:
-        status_html = "<span class='badge-green'>Active</span>" if u[4] == 'active' else "<span class='badge-red'>Bị Khóa</span>"
-        action_btn = f"<a href='/{ADMIN_ID}/ban/{u[0]}' class='btn-ban'>BAN TỬ THẦN</a>" if u[4] == 'active' else f"<a href='/{ADMIN_ID}/unban/{u[0]}' class='btn-unban'>MỞ KHÓA</a>"
-        html += f"<tr><td>{u[0]}</td><td>{status_html}</td><td style='color:#10b981; font-weight:bold;'>{u[1]:,}đ</td><td>{u[2]}</td><td>{action_btn}</td></tr>"
+        status_html = "<span class='badge-green'>Hoạt động</span>" if u[4] == 'active' else "<span class='badge-red'>Bị Khóa</span>"
+        action_btn = f"<a href='/{ADMIN_ID}/ban/{u[0]}' class='btn btn-ban'><i class='fas fa-ban'></i> BAN</a>" if u[4] == 'active' else f"<a href='/{ADMIN_ID}/unban/{u[0]}' class='btn btn-unban'><i class='fas fa-unlock'></i> MỞ</a>"
+        html += f"<tr><td>{u[0]}</td><td>{status_html}</td><td class='text-green' style='font-weight:bold;'>{u[1]:,}đ</td><td>{u[2]}</td><td>{action_btn}</td></tr>"
+    
     html += """
-            </table>
+                </table>
+            </div>
         </div>
+
+        <script>
+            function toggleMenu() {
+                document.getElementById('sidebar').classList.toggle('active');
+                // document.getElementById('main').classList.toggle('shifted'); // Bỏ comment dòng này nếu muốn Web PC đẩy nội dung sang phải
+            }
+        </script>
     </body>
     </html>
     """
     return html
 
-# ROUTE BAN/UNBAN DÀNH RIÊNG CHO ADMIN
 @app.route(f'/{ADMIN_ID}/ban/<int:uid>')
 def ban_user(uid):
     cursor.execute("UPDATE users SET status='banned' WHERE user_id=?", (uid,))
@@ -159,26 +221,26 @@ def keep_alive():
     t = threading.Thread(target=run_server)
     t.start()
 
-# ================= GIAO DIỆN NÚT BẤM =================
+# ================= GIAO DIỆN NÚT BẤM TELEGRAM =================
 def menu_chinh():
     markup = ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(KeyboardButton("🚀 NGUỒN NHIỆM VỤ 🚀"))
     markup.row(KeyboardButton("👤 Thông Tin Acc"), KeyboardButton("💳 Rút Lúa"))
-    markup.row(KeyboardButton("🎧 Trợ Giúp"), KeyboardButton("👥 Đại Lý (Mời Bạn)"))
+    markup.row(KeyboardButton("🏆 Bảng Xếp Hạng"), KeyboardButton("👥 Đại Lý (Mời Bạn)"))
+    markup.row(KeyboardButton("🎧 Trợ Giúp"))
     return markup
 
 # ================= ẢNH CHỤP MÀN HÌNH (NHIỆM VỤ BANK) =================
 @bot.message_handler(content_types=['photo'])
 def xu_ly_anh_mb(message):
     uid = message.chat.id
+    check_user(uid)
     if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản của bạn đã bị BAN vĩnh viễn!*", parse_mode="Markdown")
     if is_maintenance(uid): return bot.send_message(uid, "🚧 HỆ THỐNG ĐANG BẢO TRÌ!")
 
-    # 1. Báo lại cho dân cày
     msg_ack = f"✅ *Đã nhận được thông tin!*\n\n⏳ Hệ thống đã chuyển ảnh của bạn lên Admin, vui lòng đợi Admin kiểm tra và duyệt lúa.\n\n🎧 Có thắc mắc gì liên hệ Admin {ADMIN_USERNAME}"
     bot.reply_to(message, msg_ack, parse_mode="Markdown")
 
-    # 2. Gửi ảnh cho Sếp kiểm tra
     photo_id = message.photo[-1].file_id
     markup_duyet = InlineKeyboardMarkup()
     markup_duyet.row(
@@ -260,20 +322,19 @@ def admin_duyet_tien_rut(call):
 @bot.message_handler(commands=['start'])
 def xu_ly_start(message):
     uid = message.chat.id
+    check_user(uid)
     if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản của bạn đã bị khóa vi phạm chính sách!*", parse_mode="Markdown")
     if is_maintenance(uid): return bot.send_message(uid, "🚧 *HỆ THỐNG ĐANG BẢO TRÌ!* Quay lại sau nhé ae!", parse_mode="Markdown")
 
     text = message.text
     parts = text.split()
     
-    cursor.execute("SELECT user_id FROM users WHERE user_id=?", (uid,))
-    if not cursor.fetchone():
-        ref_id = None
-        if len(parts) > 1 and parts[1].startswith('ref'):
-            ref_id = parts[1].replace('ref', '')
-            if str(ref_id) == str(uid): ref_id = None
-        cursor.execute("INSERT INTO users (user_id, balance, total_tasks, ref_by, status) VALUES (?, 0, 0, ?, 'active')", (uid, ref_id))
-        conn.commit()
+    # Xử lý Ref
+    if len(parts) > 1 and parts[1].startswith('ref'):
+        ref_id = parts[1].replace('ref', '')
+        if str(ref_id) != str(uid):
+            cursor.execute("UPDATE users SET ref_by=? WHERE user_id=? AND ref_by IS NULL", (ref_id, uid))
+            conn.commit()
 
     if len(parts) > 1 and parts[1].startswith('task'):
         task_id = parts[1]
@@ -283,7 +344,6 @@ def xu_ly_start(message):
         if task and task[0] == 'pending' and task[1] == uid:
             reward = task[2]
             
-            # TẤT CẢ LINK SẼ PHẢI LÀM TRẮC NGHIỆM XÁC MINH CHỐNG AUTO
             dau = random.choice(['+', '-'])
             if dau == '+':
                 a, b = random.randint(10, 30), random.randint(1, 20)
@@ -343,6 +403,7 @@ def xu_ly_start(message):
 @bot.callback_query_handler(func=lambda call: call.data.startswith('chk_'))
 def check_toan_inline(call):
     uid = call.message.chat.id
+    check_user(uid)
     if is_banned(uid): return bot.answer_callback_query(call.id, "🚫 Tài khoản bị khóa!", show_alert=True)
     if is_maintenance(uid): return bot.answer_callback_query(call.id, "🚧 HỆ THỐNG ĐANG BẢO TRÌ!", show_alert=True)
     
@@ -389,9 +450,10 @@ def check_toan_inline(call):
         conn.commit()
 
 # ================= MENU CHỨC NĂNG CHÍNH =================
-@bot.message_handler(func=lambda m: m.text in ["🚀 NGUỒN NHIỆM VỤ 🚀", "🎧 Trợ Giúp", "👤 Thông Tin Acc", "👥 Đại Lý (Mời Bạn)", "💳 Rút Lúa"])
+@bot.message_handler(func=lambda m: m.text in ["🚀 NGUỒN NHIỆM VỤ 🚀", "🎧 Trợ Giúp", "👤 Thông Tin Acc", "👥 Đại Lý (Mời Bạn)", "💳 Rút Lúa", "🏆 Bảng Xếp Hạng"])
 def handle_menu(message):
     uid = message.chat.id
+    check_user(uid) # <-- FIX LỖI IMP RU Ở ĐÂY
     if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản của bạn đã bị khóa!*", parse_mode="Markdown")
     if is_maintenance(uid): return bot.send_message(uid, "🚧 *HỆ THỐNG ĐANG BẢO TRÌ!* Quay lại sau nha anh em!", parse_mode="Markdown")
 
@@ -403,6 +465,11 @@ def handle_menu(message):
         markup.row(InlineKeyboardButton("🔗 Nhiệm Vụ Vượt Link", callback_data="menu_link"))
         bot.send_message(uid, "👇 *VUI LÒNG CHỌN LOẠI NHIỆM VỤ:*", parse_mode="Markdown", reply_markup=markup)
     
+    elif cmd == "🏆 Bảng Xếp Hạng":
+        markup = InlineKeyboardMarkup()
+        markup.row(InlineKeyboardButton("🥇 Top Cày Link", callback_data="bxh_link"), InlineKeyboardButton("🔥 Top Mời Ref", callback_data="bxh_ref"))
+        bot.send_message(uid, "🏆 *BẢNG XẾP HẠNG SERVER*\n\nChọn danh mục bạn muốn xem:", parse_mode="Markdown", reply_markup=markup)
+
     elif cmd == "🎧 Trợ Giúp":
         ht = (
             "🛡️ *TỔNG ĐÀI HỖ TRỢ* 🛡️\n"
@@ -437,7 +504,9 @@ def handle_menu(message):
 
     elif cmd == "💳 Rút Lúa":
         cursor.execute("SELECT balance FROM users WHERE user_id=?", (uid,))
-        bal = cursor.fetchone()[0]
+        res = cursor.fetchone()
+        bal = res[0] if res else 0
+        
         if bal >= MIN_RUT:
             rut = (
                 "🏦 *LÊN ĐƠN RÚT LÚA* 🏦\n"
@@ -449,16 +518,36 @@ def handle_menu(message):
             m = bot.send_message(uid, rut, parse_mode="Markdown")
             bot.register_next_step_handler(m, process_withdraw, bal)
         else:
-            bot.send_message(uid, f"⚠️ Số dư: `{bal:,}đ`. Phải đủ `{MIN_RUT:,}đ` mới rút được nhé ae!", parse_mode="Markdown")
+            # Fix lỗi không rep khi chưa đủ min rút
+            bot.send_message(uid, f"⚠️ Số dư của bạn: `{bal:,}đ`.\n\n❌ *Chưa đủ điều kiện rút!* Phải cày đủ Min rút là `{MIN_RUT:,}đ` nhé ae!", parse_mode="Markdown")
 
-# ================= XỬ LÝ NHIỆM VỤ CON =================
-@bot.callback_query_handler(func=lambda call: call.data in ["menu_bank", "menu_link", "get_uptolink", "limit_reached"])
+# ================= XỬ LÝ NHIỆM VỤ CON & BXH =================
+@bot.callback_query_handler(func=lambda call: call.data in ["menu_bank", "menu_link", "get_uptolink", "limit_reached", "bxh_link", "bxh_ref"])
 def handle_sub_menus(call):
     uid = call.message.chat.id
+    check_user(uid)
     if is_banned(uid): return bot.answer_callback_query(call.id, "🚫 Tài khoản bị khóa!", show_alert=True)
     if is_maintenance(uid): return bot.answer_callback_query(call.id, "🚧 HỆ THỐNG ĐANG BẢO TRÌ!", show_alert=True)
 
-    if call.data == "menu_bank":
+    if call.data == "bxh_link":
+        cursor.execute("SELECT user_id, total_tasks FROM users WHERE total_tasks > 0 ORDER BY total_tasks DESC LIMIT 10")
+        rows = cursor.fetchall()
+        msg = "🥇 *TOP 10 CÀY CHAY CHĂM CHỈ*\n━━━━━━━━━━━━━━━━━━\n"
+        for i, r in enumerate(rows):
+            masked_id = str(r[0])[:-3] + "***"
+            msg += f"{i+1}. ID: `{masked_id}` ➔ **{r[1]}** link\n"
+        bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+        
+    elif call.data == "bxh_ref":
+        cursor.execute("SELECT ref_by, COUNT(*) as c FROM users WHERE ref_by IS NOT NULL GROUP BY ref_by ORDER BY c DESC LIMIT 10")
+        rows = cursor.fetchall()
+        msg = "🔥 *TOP 10 CHÚA TỂ TUYỂN REF*\n━━━━━━━━━━━━━━━━━━\n"
+        for i, r in enumerate(rows):
+            masked_id = str(r[0])[:-3] + "***"
+            msg += f"{i+1}. ID: `{masked_id}` ➔ **{r[1]}** người\n"
+        bot.edit_message_text(msg, chat_id=uid, message_id=call.message.message_id, parse_mode="Markdown")
+
+    elif call.data == "menu_bank":
         msg = f"""🚀 *NHIỆM VỤ ĐẶC BIỆT: TẢI APP MB BANK* 🚀
 ━━━━━━━━━━━━━━━━━━
 💰 *Thưởng nóng:* `{TIEN_MB:,}đ` vào ví Bot.
