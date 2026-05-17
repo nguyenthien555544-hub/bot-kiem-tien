@@ -10,6 +10,9 @@ from datetime import datetime
 from flask import Flask
 import threading
 
+# ================= MỐC THỜI GIAN ĐỂ TÍNH UPTIME =================
+START_TIME = time.time()
+
 # ================= CẤU HÌNH BOT & API =================
 BOT_TOKEN = "8803256348:AAH58katT66W1DrHvw445OTKv2rLGgh88r4"
 ADMIN_ID = "8781909366" 
@@ -56,7 +59,6 @@ else:
 
 # ================= HỆ THỐNG QUẢN LÝ USER =================
 def check_user(uid):
-    """Fix lỗi bấm nút im ru: Đảm bảo user luôn tồn tại trong DB"""
     cursor.execute("SELECT user_id FROM users WHERE user_id=?", (uid,))
     if not cursor.fetchone():
         cursor.execute("INSERT INTO users (user_id, balance, total_tasks, ref_by, status) VALUES (?, 0, 0, NULL, 'active')", (uid,))
@@ -78,7 +80,7 @@ def is_maintenance(uid):
 def get_today_str():
     return datetime.now().strftime("%Y-%m-%d")
 
-# ================= SERVER WEB RENDER (DASHBOARD ADMIN) =================
+# ================= SERVER WEB RENDER (DASHBOARD ADMIN NÂNG CẤP) =================
 app = Flask('')
 
 @app.route('/')
@@ -98,11 +100,12 @@ def home():
     tong_link = sum(u[2] for u in users)
     tong_du = sum(u[1] for u in users)
 
+    # HTML Giao diện
     html = f"""
     <html>
     <head>
         <meta name='viewport' content='width=device-width, initial-scale=1'>
-        <title>VVIP 5.0 Dashboard</title>
+        <title>HT TOOL - ADMIN PANEL</title>
         <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;600&display=swap');
@@ -112,89 +115,137 @@ def home():
             /* Navbar & Sidebar */
             .navbar {{ background: #111827; padding: 15px 20px; display: flex; align-items: center; border-bottom: 1px solid #1f2937; position: sticky; top: 0; z-index: 100; }}
             .menu-btn {{ font-size: 24px; color: #38bdf8; cursor: pointer; background: none; border: none; outline: none; margin-right: 15px; }}
-            .logo {{ font-family: 'Orbitron', sans-serif; font-size: 20px; color: #38bdf8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }}
+            .logo {{ font-family: 'Orbitron', sans-serif; font-size: 18px; color: #38bdf8; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }}
             
-            .sidebar {{ position: fixed; top: 60px; left: -250px; width: 250px; height: calc(100vh - 60px); background: #111827; transition: 0.3s; padding: 20px 0; border-right: 1px solid #1f2937; z-index: 99; }}
+            .sidebar {{ position: fixed; top: 55px; left: -250px; width: 250px; height: calc(100vh - 55px); background: #111827; transition: 0.3s; padding: 20px 0; border-right: 1px solid #1f2937; z-index: 99; box-shadow: 2px 0 10px rgba(0,0,0,0.5); }}
             .sidebar.active {{ left: 0; }}
-            .sidebar a {{ display: block; padding: 15px 25px; color: #94a3b8; text-decoration: none; font-size: 16px; border-left: 3px solid transparent; transition: 0.2s; }}
+            .sidebar a {{ display: block; padding: 15px 25px; color: #94a3b8; text-decoration: none; font-size: 16px; border-left: 3px solid transparent; transition: 0.2s; cursor: pointer; }}
             .sidebar a:hover, .sidebar a.active {{ background: #1f2937; color: #38bdf8; border-left-color: #38bdf8; }}
             .sidebar a i {{ margin-right: 10px; width: 20px; text-align: center; }}
 
-            /* Main Content */
-            .main-content {{ padding: 25px; transition: 0.3s; margin-left: 0; }}
-            .main-content.shifted {{ margin-left: 250px; }}
+            /* Main Content & Tabs */
+            .main-content {{ padding: 20px; transition: 0.3s; margin-left: 0; }}
+            .tab-content {{ display: none; animation: fadeIn 0.3s; }}
+            .tab-content.active {{ display: block; }}
+            @keyframes fadeIn {{ from {{ opacity: 0; transform: translateY(10px); }} to {{ opacity: 1; transform: translateY(0); }} }}
             
-            .uptime-box {{ background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 18px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); }}
+            .uptime-box {{ background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%); padding: 15px; border-radius: 12px; text-align: center; font-weight: bold; font-size: 16px; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3); }}
             
-            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }}
-            .stat-box {{ background: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; }}
-            .stat-box h3 {{ font-size: 14px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }}
-            .stat-box p {{ font-size: 24px; font-weight: 700; color: #fff; font-family: 'Orbitron', sans-serif; }}
+            /* Thống kê Grid */
+            .stats-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 25px; }}
+            .stat-box {{ background: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }}
+            .stat-box h3 {{ font-size: 12px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }}
+            .stat-box p {{ font-size: 20px; font-weight: 700; color: #fff; font-family: 'Orbitron', sans-serif; }}
             .text-green {{ color: #10b981 !important; }}
             .text-gold {{ color: #fbbf24 !important; }}
 
             /* Table */
             .table-container {{ background: #1f2937; border-radius: 12px; overflow-x: auto; border: 1px solid #374151; }}
             table {{ width: 100%; border-collapse: collapse; min-width: 600px; }}
-            th, td {{ padding: 15px; text-align: left; border-bottom: 1px solid #374151; }}
-            th {{ background: #111827; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 13px; }}
+            th, td {{ padding: 12px 15px; text-align: left; border-bottom: 1px solid #374151; font-size: 14px; }}
+            th {{ background: #111827; color: #94a3b8; font-weight: 600; text-transform: uppercase; font-size: 12px; }}
             tr:hover {{ background: #374151; }}
-            .badge-green {{ background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }}
-            .badge-red {{ background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 5px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; }}
-            .btn {{ padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; transition: 0.2s; }}
+            .badge-green {{ background: rgba(16, 185, 129, 0.2); color: #10b981; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }}
+            .badge-red {{ background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; }}
+            .btn {{ padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-block; text-align: center; transition: 0.2s; }}
             .btn-ban {{ background: #ef4444; color: #fff; }}
             .btn-ban:hover {{ background: #dc2626; }}
             .btn-unban {{ background: #10b981; color: #fff; }}
+            
+            /* Card Setting */
+            .setting-card {{ background: #1f2937; padding: 20px; border-radius: 12px; border: 1px solid #374151; margin-bottom: 15px; }}
+            .setting-card h3 {{ color: #38bdf8; margin-bottom: 15px; font-size: 16px; border-bottom: 1px solid #374151; padding-bottom: 10px; }}
+            .setting-item {{ display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: #cbd5e1; border-bottom: 1px dashed #374151; padding-bottom: 5px; }}
+            .setting-item span:last-child {{ font-weight: bold; color: #fff; }}
 
-            @media (max-width: 768px) {{
-                .main-content.shifted {{ margin-left: 0; }}
-                .stats-grid {{ grid-template-columns: 1fr 1fr; }}
-            }}
         </style>
     </head>
     <body>
         <div class="navbar">
-            <button class="menu-btn" onclick="toggleMenu()"><i class="fas fa-bars"></i></button>
-            <div class="logo">Trạm Điều Hành Bot</div>
+            <button class="menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div class="logo">HT TOOL ADMIN</div>
         </div>
 
         <div class="sidebar" id="sidebar">
-            <a href="#" class="active"><i class="fas fa-chart-line"></i> Bảng Tổng Quan</a>
-            <a href="#"><i class="fas fa-users"></i> Quản Lý Dân Cày</a>
-            <a href="#"><i class="fas fa-cogs"></i> Cài Đặt Server</a>
+            <a onclick="switchTab('tab1', this)" class="menu-item active"><i class="fas fa-chart-line"></i> Bảng Tổng Quan</a>
+            <a onclick="switchTab('tab2', this)" class="menu-item"><i class="fas fa-users"></i> Quản Lý Dân Cày</a>
+            <a onclick="switchTab('tab3', this)" class="menu-item"><i class="fas fa-cogs"></i> Cài Đặt Server</a>
         </div>
 
         <div class="main-content" id="main">
-            <div class="uptime-box">
-                <i class="fas fa-clock"></i> Thời gian Bot sống: {uptime_str}
-            </div>
-            
-            <div class="stats-grid">
-                <div class="stat-box"><h3><i class="fas fa-users"></i> Tổng Mem</h3><p>{tong_mem}</p></div>
-                <div class="stat-box"><h3><i class="fas fa-link"></i> Link Đã Cày</h3><p>{tong_link}</p></div>
-                <div class="stat-box"><h3><i class="fas fa-wallet"></i> Lúa Tồn Đọng</h3><p class="text-green">{tong_du:,}đ</p></div>
-                <div class="stat-box"><h3><i class="fas fa-gift"></i> Rate App MB</h3><p class="text-gold">{TIEN_MB:,}đ</p></div>
+            <div id="tab1" class="tab-content active">
+                <div class="uptime-box">
+                    <i class="fas fa-clock"></i> Thời gian Bot sống: {uptime_str}
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><h3><i class="fas fa-users"></i> Tổng Mem</h3><p>{tong_mem}</p></div>
+                    <div class="stat-box"><h3><i class="fas fa-link"></i> Link Đã Cày</h3><p>{tong_link}</p></div>
+                    <div class="stat-box"><h3><i class="fas fa-wallet"></i> Lúa Tồn Đọng</h3><p class="text-green">{tong_du:,}đ</p></div>
+                    <div class="stat-box"><h3><i class="fas fa-gift"></i> Rate App MB</h3><p class="text-gold">{TIEN_MB:,}đ</p></div>
+                </div>
             </div>
 
-            <div class="table-container">
-                <table>
-                    <tr><th>ID Telegram</th><th>Trạng Thái</th><th>Số Dư</th><th>Tổng Link</th><th>Hành Động</th></tr>
+            <div id="tab2" class="tab-content">
+                <h3 style="color: #38bdf8; margin-bottom: 15px;"><i class="fas fa-users-cog"></i> Danh Sách ID Telegram</h3>
+                <div class="table-container">
+                    <table>
+                        <tr><th>ID Telegram</th><th>Trạng Thái</th><th>Số Dư</th><th>Tổng Link</th><th>Hành Động</th></tr>
     """
     for u in users:
         status_html = "<span class='badge-green'>Hoạt động</span>" if u[4] == 'active' else "<span class='badge-red'>Bị Khóa</span>"
         action_btn = f"<a href='/{ADMIN_ID}/ban/{u[0]}' class='btn btn-ban'><i class='fas fa-ban'></i> BAN</a>" if u[4] == 'active' else f"<a href='/{ADMIN_ID}/unban/{u[0]}' class='btn btn-unban'><i class='fas fa-unlock'></i> MỞ</a>"
         html += f"<tr><td>{u[0]}</td><td>{status_html}</td><td class='text-green' style='font-weight:bold;'>{u[1]:,}đ</td><td>{u[2]}</td><td>{action_btn}</td></tr>"
     
-    html += """
-                </table>
+    html += f"""
+                    </table>
+                </div>
             </div>
+
+            <div id="tab3" class="tab-content">
+                <div class="setting-card">
+                    <h3><i class="fas fa-sliders-h"></i> Thông Số Trả Thưởng</h3>
+                    <div class="setting-item"><span>Tiền Vượt Link (Uptolink):</span> <span class="text-green">{TIEN_UPTO}đ</span></div>
+                    <div class="setting-item"><span>Tiền Tải App (MB Bank):</span> <span class="text-gold">{TIEN_MB:,}đ</span></div>
+                    <div class="setting-item"><span>Hoa hồng giới thiệu (Ref):</span> <span>{HOA_HONG_REF}đ</span></div>
+                    <div class="setting-item"><span>Min Rút Lúa:</span> <span class="text-green">{MIN_RUT:,}đ</span></div>
+                </div>
+                <div class="setting-card">
+                    <h3><i class="fas fa-server"></i> Cấu Hình Hệ Thống</h3>
+                    <div class="setting-item"><span>ID Admin Root:</span> <span>{ADMIN_ID}</span></div>
+                    <div class="setting-item"><span>Giới hạn Uptolink/Ngày:</span> <span>{MAX_UPTO} link</span></div>
+                    <div class="setting-item"><span>Bảo trì Server (Lệnh):</span> <span>/baotri on/off</span></div>
+                </div>
+            </div>
+
         </div>
 
         <script>
-            function toggleMenu() {
+            // Đóng mở Menu Sidebar
+            function toggleSidebar() {{
                 document.getElementById('sidebar').classList.toggle('active');
-                // document.getElementById('main').classList.toggle('shifted'); // Bỏ comment dòng này nếu muốn Web PC đẩy nội dung sang phải
-            }
+            }}
+
+            // Hàm chuyển đổi các Tab (Hoạt động mượt không cần load lại web)
+            function switchTab(tabId, element) {{
+                // 1. Ẩn tất cả nội dung Tab
+                let tabs = document.getElementsByClassName('tab-content');
+                for(let i = 0; i < tabs.length; i++) {{
+                    tabs[i].classList.remove('active');
+                }}
+                
+                // 2. Tắt hiệu ứng sáng ở tất cả các nút Menu
+                let menuItems = document.getElementsByClassName('menu-item');
+                for(let i = 0; i < menuItems.length; i++) {{
+                    menuItems[i].classList.remove('active');
+                }}
+
+                // 3. Hiện Tab được chọn và Làm sáng Menu vừa bấm
+                document.getElementById(tabId).classList.add('active');
+                element.classList.add('active');
+
+                // 4. Tự động đóng menu trượt trên điện thoại sau khi chọn xong
+                document.getElementById('sidebar').classList.remove('active');
+            }}
         </script>
     </body>
     </html>
@@ -453,7 +504,7 @@ def check_toan_inline(call):
 @bot.message_handler(func=lambda m: m.text in ["🚀 NGUỒN NHIỆM VỤ 🚀", "🎧 Trợ Giúp", "👤 Thông Tin Acc", "👥 Đại Lý (Mời Bạn)", "💳 Rút Lúa", "🏆 Bảng Xếp Hạng"])
 def handle_menu(message):
     uid = message.chat.id
-    check_user(uid) # <-- FIX LỖI IMP RU Ở ĐÂY
+    check_user(uid)
     if is_banned(uid): return bot.send_message(uid, "🚫 *Tài khoản của bạn đã bị khóa!*", parse_mode="Markdown")
     if is_maintenance(uid): return bot.send_message(uid, "🚧 *HỆ THỐNG ĐANG BẢO TRÌ!* Quay lại sau nha anh em!", parse_mode="Markdown")
 
@@ -518,7 +569,6 @@ def handle_menu(message):
             m = bot.send_message(uid, rut, parse_mode="Markdown")
             bot.register_next_step_handler(m, process_withdraw, bal)
         else:
-            # Fix lỗi không rep khi chưa đủ min rút
             bot.send_message(uid, f"⚠️ Số dư của bạn: `{bal:,}đ`.\n\n❌ *Chưa đủ điều kiện rút!* Phải cày đủ Min rút là `{MIN_RUT:,}đ` nhé ae!", parse_mode="Markdown")
 
 # ================= XỬ LÝ NHIỆM VỤ CON & BXH =================
