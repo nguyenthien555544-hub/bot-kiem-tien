@@ -11,9 +11,9 @@ from flask import Flask, request
 import threading
 
 # ================= CẤU HÌNH BOT CƠ BẢN =================
-BOT_TOKEN = "8803256348:AAH58katT66W1DrHvw445OTKv2rLGgh88r4"
-ADMIN_ID = "8781909366" 
-ADMIN_USERNAME = "@vanminh2826"
+BOT_TOKEN = ""
+ADMIN_ID =
+ADMIN_USERNAME 
 HOA_HONG_REF = 50       
 
 bot = telebot.TeleBot(BOT_TOKEN)
